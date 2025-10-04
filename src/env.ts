@@ -5,5 +5,4 @@ const envSchema = z.object({
 	PORT: z.coerce.number().default(3333),
 });
 
-console.log(process.env.RABBITMQ_URL);
 export const env = envSchema.parse(process.env);

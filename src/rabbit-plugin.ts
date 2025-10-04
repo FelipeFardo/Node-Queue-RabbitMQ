@@ -1,13 +1,10 @@
 import amqp, { type Channel, type ConsumeMessage } from "amqplib";
-import type {
-	FastifyInstance,
-	// FastifyPluginOptions
-} from "fastify";
+import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 
 import fastifyPlugin from "fastify-plugin";
 import { env } from "@/env.ts";
 
-const QUEUE_NAME = "all_queue";
+const QUEUE_NAME = "queue_one";
 
 async function getRabbitChannel(): Promise<Channel> {
 	try {
@@ -26,7 +23,7 @@ async function getRabbitChannel(): Promise<Channel> {
 async function consumeRabbitMessage(
 	msg: ConsumeMessage | null,
 	fastify: FastifyInstance,
-	_channel: Channel,
+	channel: Channel,
 ) {
 	if (!msg) {
 		return;
@@ -34,8 +31,8 @@ async function consumeRabbitMessage(
 
 	try {
 		const data = JSON.parse(msg.content.toString());
-
-		console.log(data);
+		console.log("Mensagem recebida:", data);
+		channel.ack(msg);
 	} catch (error) {
 		fastify.log.error(error);
 	}
@@ -43,14 +40,12 @@ async function consumeRabbitMessage(
 
 async function rabbitPlugin(
 	fastify: FastifyInstance,
-	// opts: FastifyPluginOptions,
+	_opts: FastifyPluginOptions,
 ) {
 	const channel = await getRabbitChannel();
 
-	await channel.assertQueue(QUEUE_NAME, {}).then(() => {
-		return channel.consume(QUEUE_NAME, async (msg) => {
-			await consumeRabbitMessage(msg, fastify, channel);
-		});
+	await channel.consume(QUEUE_NAME, async (msg) => {
+		await consumeRabbitMessage(msg, fastify, channel);
 	});
 }
 
